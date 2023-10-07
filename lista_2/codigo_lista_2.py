@@ -1,5 +1,13 @@
 #%%
+#%%
+import statsmodels.api as sm
+import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+
+import statsmodels.api as sm
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 #%%
 df1 = pd.read_excel('../datasets/treated_ger_energ_ele_hidr.xlsx')
