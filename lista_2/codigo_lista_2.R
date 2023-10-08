@@ -44,8 +44,24 @@ plot_chart <- function(x, y, x_label, y_label, title, line_color = 'blue', line_
     theme(plot.title = element_text(hjust = 0.5))
 }
 
-# =========================================================================
+# Plot observed and predicted time series
+plot_two_charts <- function(x1, y1, x2, y2, x_label, y_label, title) {
+  df1 <- data.frame(x = x1, y = y1)
+  df2 <- data.frame(x = x2, y = y2)
+  
+  # Create a single ggplot object with both datasets
+  stacked_plot <- ggplot() +
+    geom_line(data = df1, aes(x = x, y = y), color = '#3065ab', size = 1, alpha = 1) +
+    geom_line(data = df2, aes(x = x, y = y), color = '#b52f28', size = 1, alpha = 1) +
+    labs(x = x_label, y = y_label, title = title) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  # Show the stacked plot
+  print(stacked_plot)
+}
 
+# =========================================================================
 
 # Define the Excel file name
 file_name <- "treated_ger_energ_ele_hidr.xlsx"
@@ -82,8 +98,8 @@ plot_chart(
   title='Geração de energia elétrica hidráulica',
   x_label='Tempo (mensal)',
   y_label='Geração (GWh)',
-  line_size = 0.5,
-  smoothness = 1.1,
+  line_size = 1.05,
+  smoothness = 0.8,
   line_color='#375fa1'
 )
 
@@ -93,6 +109,8 @@ plot_chart(
   title='1ª Diferença da série temporal',
   x_label='Tempo (mensal)',
   y_label='Geração (GWh)',
+  line_size = 1.05,
+  smoothness = 0.8,
   line_color='#32ad7a'
 )
 
@@ -102,6 +120,8 @@ plot_chart(
   title='2ª Diferença da série temporal',
   x_label='Tempo (mensal)',
   y_label='Geração (GWh)',
+  line_size = 1.05,
+  smoothness = 0.8,
   line_color='#c26f2b'
 )
 
@@ -126,7 +146,7 @@ for (p in 0:5) {
       arma_list <- append(arma_list, paste0("(", p, ",", q, ")"))
       
       # Append the AICc value to the aic_list
-      aic_list <- append(aic_list, AIC(model, k = 2))  # k = 2 for AICc
+      aic_list <- append(aic_list, model$aicc)
     }, error = function(e) {
       # Handle any errors during model fitting
       cat("Error:", e$message, "\n")
@@ -152,7 +172,7 @@ cat("Best ARMA Model (Minimum AICc):", best_arma, "\n")
 # ---------------------------- Questão 1.iv -------------------------------
 
 best_model_iii <- Arima(ts_diff_2, order=c(4, 0, 5), seasonal=c(0, 0, 0, 0))
-residuals <- residuals(best_model_iii)
+residuals <- best_model_iii$residuals
 acf_pacf_grid(residuals, 'Resíduos do ARMA(4,5)')
 
 # As observed in the ACF and PACF plots of the residuals acquired 
@@ -160,33 +180,12 @@ acf_pacf_grid(residuals, 'Resíduos do ARMA(4,5)')
 #   structure with of 12 lag-frequent starting in the lags 6 and 12
 
 adjusted_best_model_iii <- Arima(ts_diff_2, order=c(12, 0, 12), seasonal=c(0, 0, 0, 0))
-residuals <- residuals(adjusted_best_model_iii)
+residuals <- adjusted_best_model_iii$residuals
 acf_pacf_grid(residuals, 'Resíduos do ARMA(12,12)')
 
 # ---------------------------- Questão 1.vii -------------------------------
 
-adjusted_best_model_iii <- Arima(ts_diff_2, order=c(12, 0, 12), seasonal=c(0, 0, 0, 0))
-fitted_values <- fitted(adjusted_best_model_iii)
-
-# Plot observed and predicted time series
-plot_two_charts <- function(x1, y1, x2, y2, x_label, y_label, title) {
-  df1 <- data.frame(x = x1, y = y1)
-  df2 <- data.frame(x = x2, y = y2)
-  
-  # Create a single ggplot object with both datasets
-  stacked_plot <- ggplot() +
-    geom_line(data = df1, aes(x = x, y = y), color = '#3065ab', size = 1, alpha = 1) +
-    geom_line(data = df2, aes(x = x, y = y), color = '#b52f28', size = 1, alpha = 1) +
-    labs(x = x_label, y = y_label, title = title) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5))
-  
-  # Show the stacked plot
-  print(stacked_plot)
-}
-
-# Assuming 'fitted_values' is a list containing the fitted values
-fitted_values <- unlist(fitted_values)
+fitted_values <- unlist(adjusted_best_model_iii$fitted)
 
 # Call the plot_two_charts function
 plot_two_charts(
