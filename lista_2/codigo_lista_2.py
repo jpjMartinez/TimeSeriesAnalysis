@@ -120,3 +120,14 @@ best_arma_aicc = df_arma.loc[df_arma['AICc'] == df_arma['AICc'].min()]['(p,q)'].
 print('Modelo ARMA com menor AICc: ({})'.format(best_arma_aicc))
 # df_arma.to_excel('ARMAPQ.xlsx', index=False) 
 #%%
+
+
+residuos = [-2139.163970, -390.391624, -2667.618268, -1225.399743, -453.700946, 131.793518, -2046.329557, 2342.750761, 777.824282, 1500.578021, 1015.015349, 2005.461912]
+len(residuos)
+
+# %%
+
+
+
+
+

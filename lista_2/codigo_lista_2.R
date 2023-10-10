@@ -61,6 +61,24 @@ plot_two_charts <- function(x1, y1, x2, y2, x_label, y_label, title) {
   print(stacked_plot)
 }
 
+# Calculate the all the error metrics
+calculate_metrics <- function(observed, predicted) {
+  observed <- as.numeric(observed)
+  predicted <- as.numeric(predicted)
+  
+  rmse_value <- sqrt(mean((observed - predicted)^2))
+  mad_value <- mean(abs(observed - predicted))
+  mape_value <- mean(abs((observed - predicted) / observed)) * 100
+  
+  # Print the results
+  cat("RMSE:", rmse_value, "\n")
+  cat("MAD:", mad_value, "\n")
+  cat("MAPE:", mape_value, "%\n")
+  
+  # Return the metrics as a named list
+  return(list(RMSE = rmse_value, MAD = mad_value, MAPE = mape_value))
+}
+
 # =========================================================================
 
 # Define the Excel file name
@@ -85,10 +103,14 @@ test_set <- df[(nrow(df) - test_size + 1):nrow(df), ]
 ts <- xts(train_set$geracao_gwh, order.by = train_set$mes_ano)
 
 # Calculate the first difference and store it in ts_diff_1
-ts_diff_1 <- diff(ts)
+ts_diff_1 <- na.omit(diff(ts))
 
 # Calculate the second difference and store it in ts_diff_2
-ts_diff_2 <- diff(ts_diff_1)
+ts_diff_2 <- na.omit(diff(ts_diff_1))
+
+length(ts)
+length(ts_diff_1)
+length(ts_diff_2)
 
 # --------------------------------------------------------------------
 
@@ -140,6 +162,7 @@ for (p in 0:5) {
   for (q in 0:5) {
     tryCatch({
       # Fit an ARMA(p, q, d) model using Arima
+      print(paste0(p,",",q))
       model <- Arima(ts_diff_2, order=c(p, 0, q), seasonal=c(0, 0, 0, 0))
       
       # Construct the ARMA(p,q) string and append it to the arma_list
@@ -169,11 +192,21 @@ best_arma <- results_df$ARMA[min_aicc_index]
 # Print the best ARMA model order
 cat("Best ARMA Model (Minimum AICc):", best_arma, "\n")
 
+# Define the file name for the Excel file (replace with your desired file path)
+excel_file <- "arma_results.xlsx"
+
+# Write the dataframe to an Excel file
+write.xlsx(results_df, file = excel_file, sheetName = "ARMA_Results", rowNames = FALSE)
+
+# Print a message to confirm the export
+cat("Dataframe exported to", excel_file, "\n")
+
+
 # ---------------------------- Questão 1.iv -------------------------------
 
-best_model_iii <- Arima(ts_diff_2, order=c(4, 0, 5), seasonal=c(0, 0, 0, 0))
+best_model_iii <- Arima(ts_diff_2, order=c(5, 0, 4), seasonal=c(0, 0, 0, 0))
 residuals <- best_model_iii$residuals
-acf_pacf_grid(residuals, 'Resíduos do ARMA(4,5)')
+acf_pacf_grid(residuals, 'Resíduos do ARMA(5,4)')
 
 # As observed in the ACF and PACF plots of the residuals acquired 
 #   with the estimation of the model ARMA(4,5) we've seen some remaining 
@@ -196,21 +229,39 @@ plot_two_charts(
   y_label = 'Geração (GWh)'
 )
 
-
-# -------------------------------------------------------------------------
-
-# Define the file name for the Excel file (replace with your desired file path)
-# excel_file <- "arma_results.xlsx"
-
-# Write the dataframe to an Excel file
-# write.xlsx(results_df, file = excel_file, sheetName = "ARMA_Results", rowNames = FALSE)
-
-# Print a message to confirm the export
-# cat("Dataframe exported to", excel_file, "\n")
-
-    
+# Get the error metrics during the training set
+calculate_metrics(
+  observed = na.omit(ts_diff_2),
+  predicted = na.omit(fitted_values)
+)
 
 
+# ---------------------------- Questão 2.iii -------------------------------
+
+# Assuming you have already fitted your ARIMA model (adjusted_best_model_iii)
+# Make predictions for the next 12 time steps
+forecast_values <- forecast(adjusted_best_model_iii, h = 12)
+
+# ----------------------------- Questão 2.iv ------------------------------
+
+ts <- xts(df$geracao_gwh, order.by = df$mes_ano)
+ts_diff_1 <- na.omit(diff(ts))
+ts_diff_2 <- na.omit(diff(ts_diff_1))
+
+best_model <- Arima(ts_diff_2, order=c(12, 0, 12), seasonal=c(0, 0, 0, 0))
+forecast_values_extrapolation <- forecast(best_model, h = 24)
+
+# Plot the mean forecast values with prediction intervals
+plot(forecast_values_extrapolation$mean, main="Forecast with 95% Prediction Interval", xlab = "Time", ylab = "Forecasted Values")
+
+# Add the 95% prediction intervals to the plot
+lines(forecast_values_extrapolation$lower, col="blue", lty=2) # Lower prediction interval
+lines(forecast_values_extrapolation$upper, col="blue", lty=2) # Upper prediction interval
+
+# Add a legend to the plot
+legend("topright", legend=c("Mean Forecast", "95% Prediction Interval"), col=c("black", "blue"), lty=c(1,2), bty="n")
+
+# Optionally, you can customize the plot further
 
 
 
